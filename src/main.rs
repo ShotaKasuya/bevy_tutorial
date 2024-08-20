@@ -14,7 +14,7 @@ fn main() {
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
             title: "Mine Sweeper!".to_string(),
-            resolution: WindowResolution::new(700f32, 800f32),
+            resolution: WindowResolution::new(500f32, 500f32),
             ..Default::default()
         }),
         ..Default::default()

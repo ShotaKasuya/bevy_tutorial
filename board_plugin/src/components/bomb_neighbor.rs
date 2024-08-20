@@ -1,6 +1,8 @@
-use bevy::prelude::Component;
+use bevy::prelude::{Component, Reflect, Resource};
+#[cfg(feature = "debug")]
+use bevy_inspector_egui::InspectorOptions;
 
-#[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable))]
+#[cfg_attr(feature = "debug", derive(Reflect, Resource ,InspectorOptions))]
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Component)]
 pub struct BombNeighbor {
     /// Number of neighbor bombs
