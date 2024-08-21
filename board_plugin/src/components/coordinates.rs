@@ -1,9 +1,12 @@
 use std::fmt::{Display, Formatter};
 use std::ops::{Add, Sub};
-use bevy::prelude::{Component, Reflect, Resource};
+use bevy::prelude::Component;
 
 #[cfg(feature = "debug")]
-use bevy_inspector_egui::InspectorOptions;
+use {
+    bevy::prelude::{Reflect, Resource},
+    bevy_inspector_egui::InspectorOptions,
+};
 
 #[cfg_attr(feature = "debug", derive(Reflect, Resource ,InspectorOptions))]
 #[derive(Debug, Default, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Component)]

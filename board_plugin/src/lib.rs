@@ -1,22 +1,35 @@
 use bevy::app::App;
+use bevy::color::palettes::css::{DARK_GRAY, GRAY};
 use bevy::prelude::*;
-use crate::components::{Bomb, BombNeighbor, Coordinates, Uncover};
+use bevy::utils::HashMap;
+use crate::components::{Bomb, BombNeighbor, Coordinates};
 use crate::resources::board_options::{BoardOptions, BoardPosition, TileSize};
 use crate::resources::tile_map::TileMap;
 
 #[cfg(feature = "debug")]
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
+use crate::bounds::Bounds2;
+use crate::components::uncover::{trigger_event_handler, Uncover, uncover_tiles};
+use crate::events::TileTriggerEvent;
+use crate::resources::board::Board;
 use crate::resources::tile::Tile;
+use crate::systems::input::input_handling;
 
 pub mod resources;
 pub mod components;
 mod bounds;
+mod systems;
+mod events;
 
 pub struct BoardPlugin;
 
 impl Plugin for BoardPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, Self::create_board);
+        app.add_systems(Startup, Self::create_board)
+            .add_systems(Update, input_handling)
+            .add_systems(Update, trigger_event_handler)
+            .add_systems(Update, uncover_tiles)
+            .add_event::<TileTriggerEvent>();
 
         #[cfg(feature = "debug")]
         {
@@ -55,6 +68,7 @@ impl BoardPlugin {
                 )
             }
         };
+        let mut covered_tiles = HashMap::with_capacity((tile_map.width() * tile_map.height()) as usize);
         let board_size = Vec2::new(
             tile_map.width() as f32 * tile_size,
             tile_map.height() as f32 * tile_size,
@@ -69,6 +83,8 @@ impl BoardPlugin {
 
         #[cfg(feature = "debug")]
         log::info!("{}", tile_map.console_output());
+
+        let mut safe_start = None;
         commands.spawn_empty()
             .insert(Name::new("Board"))
             .insert(Transform::from_translation(board_position))
@@ -90,11 +106,28 @@ impl BoardPlugin {
                     &tile_map,
                     tile_size,
                     options.tile_padding,
-                    Color::srgb(0.7, 0.7, 0.7),
+                    Color::from(GRAY),
                     bomb_image,
                     font,
+                    Color::from(DARK_GRAY),
+                    &mut covered_tiles,
+                    &mut safe_start,
                 );
             });
+        if options.safe_start {
+            if let Some(entity) = safe_start {
+                commands.entity(entity).insert(Uncover);
+            }
+        }
+        commands.insert_resource(Board {
+            tile_map,
+            bounds: Bounds2 {
+                position: board_position.xy(),
+                size: board_size,
+            },
+            tile_size,
+            covered_tiles,
+        });
     }
 
     fn adaptative_tile_size(window: Window, (min, max): (f32, f32), (width, height): (u16, u16)) -> f32 {
@@ -103,7 +136,18 @@ impl BoardPlugin {
         max_width.min(max_height).clamp(min, max)
     }
 
-    fn spawn_tiles(parent: &mut ChildBuilder, tile_map: &TileMap, size: f32, padding: f32, color: Color, bomb_image: Handle<Image>, font: Handle<Font>) {
+    fn spawn_tiles(
+        parent: &mut ChildBuilder,
+        tile_map: &TileMap,
+        size: f32,
+        padding: f32,
+        color: Color,
+        bomb_image: Handle<Image>,
+        font: Handle<Font>,
+        covered_tile_color: Color,
+        covered_tiles: &mut HashMap<Coordinates, Entity>,
+        safe_start_entity: &mut Option<Entity>,
+    ) {
         // Tiles
         for (y, line) in tile_map.iter().enumerate() {
             for (x, tile) in line.iter().enumerate() {
@@ -113,7 +157,7 @@ impl BoardPlugin {
                 };
                 let mut cmd = parent.spawn(SpriteBundle {
                     sprite: Sprite {
-                        color: Color::srgb(0.5, 0.5, 0.5),
+                        color,
                         custom_size: Some(Vec2::splat(
                             size - padding
                         )),
@@ -158,6 +202,24 @@ impl BoardPlugin {
                     }
                     Tile::Empty => {}
                 }
+                cmd.with_children(|parent| {
+                    let entity = parent
+                        .spawn(SpriteBundle{
+                            sprite: Sprite {
+                                custom_size: Some(Vec2::splat(size-padding)),
+                                color: covered_tile_color,
+                                ..Default::default()
+                            },
+                            transform: Transform::from_xyz(0., 0.,2.),
+                            ..Default::default()
+                        })
+                        .insert(Name::new("Tile Cover"))
+                        .id();
+                    covered_tiles.insert(coordinates, entity);
+                    if safe_start_entity.is_none() && *tile == Tile::Empty {
+                        *safe_start_entity = Some(entity);
+                    }
+                });
             }
         }
     }
