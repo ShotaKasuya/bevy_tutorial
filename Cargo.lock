@@ -1105,6 +1105,7 @@ dependencies = [
  "bevy-inspector-egui",
  "board_plugin",
  "colored",
+ "log",
  "rand 0.9.0-alpha.2",
  "serde",
 ]

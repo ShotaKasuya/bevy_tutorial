@@ -1,5 +1,6 @@
 use bevy::app::App;
 use bevy::color::palettes::css::{DARK_GRAY, GRAY};
+use bevy::ecs::schedule::SystemTypeSet;
 use bevy::prelude::*;
 use bevy::utils::HashMap;
 use crate::components::{Bomb, BombNeighbor, Coordinates};
@@ -21,15 +22,28 @@ mod bounds;
 mod systems;
 mod events;
 
-pub struct BoardPlugin;
+pub struct BoardPlugin<T> {
+    pub running_state: T,
+}
 
-impl Plugin for BoardPlugin {
+impl<T: States> Plugin for BoardPlugin<T> {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, Self::create_board)
-            .add_systems(Update, input_handling)
-            .add_systems(Update, trigger_event_handler)
-            .add_systems(Update, uncover_tiles)
-            .add_event::<TileTriggerEvent>();
+
+        app.add_systems(OnEnter(self.running_state.clone()), Self::create_board);
+
+        app.add_systems(OnExit(self.running_state.clone()), (
+            Self::cleanup_board
+            ));
+
+        app.add_systems(Update, (
+            input_handling, trigger_event_handler,uncover_tiles
+            ).run_if(in_state(self.running_state.clone())));
+
+        // app.add_systems(Update, (
+        //
+        //     ));
+
+        app.add_event::<TileTriggerEvent>();
 
         #[cfg(feature = "debug")]
         {
@@ -44,7 +58,7 @@ impl Plugin for BoardPlugin {
     }
 }
 
-impl BoardPlugin {
+impl<T> BoardPlugin<T> {
     /// System to generate the complete board
     pub fn create_board(mut commands: Commands, board_options: Option<Res<BoardOptions>>, window: Query<&Window>, asset_server: Res<AssetServer>) {
         let options = match board_options {
@@ -85,7 +99,7 @@ impl BoardPlugin {
         log::info!("{}", tile_map.console_output());
 
         let mut safe_start = None;
-        commands.spawn_empty()
+        let board_entity = commands.spawn_empty()
             .insert(Name::new("Board"))
             .insert(Transform::from_translation(board_position))
             .insert(GlobalTransform::default())
@@ -113,7 +127,8 @@ impl BoardPlugin {
                     &mut covered_tiles,
                     &mut safe_start,
                 );
-            });
+            })
+            .id();
         if options.safe_start {
             if let Some(entity) = safe_start {
                 commands.entity(entity).insert(Uncover);
@@ -127,6 +142,7 @@ impl BoardPlugin {
             },
             tile_size,
             covered_tiles,
+            entity: board_entity,
         });
     }
 
@@ -251,5 +267,10 @@ impl BoardPlugin {
             transform: Transform::from_xyz(0., 0., 1.),
             ..Default::default()
         }
+    }
+
+    fn cleanup_board(board: Res<Board>, mut commands: Commands) {
+        commands.entity(board.entity).despawn_recursive();
+        commands.remove_resource::<Board>();
     }
 }
