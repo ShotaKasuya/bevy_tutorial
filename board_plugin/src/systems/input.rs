@@ -1,7 +1,7 @@
 use bevy::input::ButtonState;
 use bevy::input::mouse::MouseButtonInput;
 use bevy::prelude::{EventReader, EventWriter, MouseButton, Query, Res, Window};
-use crate::events::TileTriggerEvent;
+use crate::events::{TileMarkEvent, TileTriggerEvent};
 use crate::resources::board::Board;
 
 pub fn input_handling(
@@ -9,6 +9,7 @@ pub fn input_handling(
     board: Res<Board>,
     mut button_evr: EventReader<MouseButtonInput>,
     mut tile_trigger_ewr: EventWriter<TileTriggerEvent>,
+    mut tile_mark_event:EventWriter<TileMarkEvent>,
 ) {
     let window = window.single();
 
@@ -26,7 +27,7 @@ pub fn input_handling(
                         }
                         MouseButton::Right => {
                             log::info!("Trying to make tile on {}", coordinates);
-                            tile_trigger_ewr.send(TileTriggerEvent(coordinates));
+                            tile_mark_event.send(TileMarkEvent(coordinates));
                         }
                         _ => {}
                     }

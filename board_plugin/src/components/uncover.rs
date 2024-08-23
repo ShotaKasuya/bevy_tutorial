@@ -1,11 +1,11 @@
-use bevy::prelude::{Commands, Component, DespawnRecursiveExt, Entity, EventReader, Parent, Query, Res, ResMut, With};
+use bevy::prelude::{Commands, Component, DespawnRecursiveExt, Entity, EventReader, EventWriter, Parent, Query, Res, ResMut, With};
 #[cfg(feature = "debug")]
 use {
     bevy::prelude::{Reflect, Resource},
     bevy_inspector_egui::InspectorOptions,
 };
 use crate::components::{Bomb, BombNeighbor, Coordinates};
-use crate::events::TileTriggerEvent;
+use crate::events::{BoardCompletedEvent, BombExplosionEvent, TileTriggerEvent};
 use crate::resources::board::Board;
 
 #[cfg_attr(feature = "debug", derive(Resource, Reflect, InspectorOptions))]
@@ -29,6 +29,8 @@ pub fn uncover_tiles(
     mut board: ResMut<Board>,
     children: Query<(Entity, &Parent), With<Uncover>>,
     parents: Query<(&Coordinates, Option<&Bomb>, Option<&BombNeighbor>)>,
+    mut board_completed_event_wr: EventWriter<BoardCompletedEvent>,
+    mut bomb_explosion_event_wr: EventWriter<BombExplosionEvent>,
 ) {
     for (entity, parent) in children.iter() {
         commands.entity(entity)
@@ -44,9 +46,13 @@ pub fn uncover_tiles(
             None => {log::debug!("Tried to uncover an already uncovered tile")}
             Some(e) => {log::debug!("Uncovered tile {} (entity: {:?})", coords, e)}
         }
+        if board.is_completed() {
+            log::info!("Bomb Completed");
+            board_completed_event_wr.send(BoardCompletedEvent);
+        }
         if bomb.is_some() {
             log::info!("Boom !");
-            // TODO: Add explosion event
+            bomb_explosion_event_wr.send(BombExplosionEvent);
         }
         else if bomb_counter.is_none() {
             for entity in board.adjacent_covered_tiles(*coords) {
