@@ -1,6 +1,4 @@
 use bevy::app::App;
-use bevy::color::palettes::css::{DARK_GRAY, GRAY};
-use bevy::ecs::schedule::SystemTypeSet;
 use bevy::prelude::*;
 use bevy::utils::HashMap;
 use crate::components::{Bomb, BombNeighbor, Coordinates};
@@ -11,11 +9,12 @@ use crate::resources::tile_map::TileMap;
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 use crate::bounds::Bounds2;
 use crate::components::uncover::{trigger_event_handler, Uncover, uncover_tiles};
-use crate::events::TileTriggerEvent;
+use crate::events::{BoardCompletedEvent, BombExplosionEvent, TileMarkEvent, TileTriggerEvent};
 use crate::resources::board::Board;
 use crate::resources::BoardAssets;
 use crate::resources::tile::Tile;
 use crate::systems::input::input_handling;
+use crate::systems::mark::mark_tiles;
 
 pub mod resources;
 pub mod components;
@@ -29,22 +28,26 @@ pub struct BoardPlugin<T> {
 
 impl<T: States> Plugin for BoardPlugin<T> {
     fn build(&self, app: &mut App) {
+        app.add_systems(
+            OnEnter(self.running_state.clone()),
+            Self::create_board,
+        );
 
-        app.add_systems(OnEnter(self.running_state.clone()), Self::create_board);
-
-        app.add_systems(OnExit(self.running_state.clone()), (
-            Self::cleanup_board
-            ));
+        app.add_systems(
+            OnExit(self.running_state.clone()),
+            Self::cleanup_board,
+        );
 
         app.add_systems(Update, (
-            input_handling, trigger_event_handler,uncover_tiles
-            ).run_if(in_state(self.running_state.clone())));
+            input_handling, trigger_event_handler, uncover_tiles,
+            mark_tiles,
+        ).run_if(in_state(self.running_state.clone())));
 
-        // app.add_systems(Update, (
-        //
-        //     ));
-
-        app.add_event::<TileTriggerEvent>();
+        app
+            .add_event::<TileTriggerEvent>()
+            .add_event::<BombExplosionEvent>()
+            .add_event::<BoardCompletedEvent>()
+            .add_event::<TileMarkEvent>();
 
         #[cfg(feature = "debug")]
         {
@@ -144,6 +147,7 @@ impl<T> BoardPlugin<T> {
             tile_size,
             covered_tiles,
             entity: board_entity,
+            marked_tiles: Vec::new(),
         });
     }
 
@@ -218,13 +222,13 @@ impl<T> BoardPlugin<T> {
                 }
                 cmd.with_children(|parent| {
                     let entity = parent
-                        .spawn(SpriteBundle{
+                        .spawn(SpriteBundle {
                             sprite: Sprite {
-                                custom_size: Some(Vec2::splat(size-padding)),
+                                custom_size: Some(Vec2::splat(size - padding)),
                                 color: board_assets.covered_tile_material.color,
                                 ..Default::default()
                             },
-                            transform: Transform::from_xyz(0., 0.,2.),
+                            transform: Transform::from_xyz(0., 0., 2.),
                             ..Default::default()
                         })
                         .insert(Name::new("Tile Cover"))
@@ -241,7 +245,7 @@ impl<T> BoardPlugin<T> {
     fn bomb_count_text_bundle(
         count: u8,
         board_assets: &BoardAssets,
-        size: f32
+        size: f32,
     ) -> Text2dBundle {
         let color = board_assets.bomb_counter_color(count);
         Text2dBundle {

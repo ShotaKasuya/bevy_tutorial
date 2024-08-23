@@ -1,6 +1,5 @@
 use bevy::color::palettes::css::{GREEN, ORANGE, PURPLE, WHITE, YELLOW};
 use bevy::prelude::*;
-use bevy::render::render_resource::Texture;
 
 /// テクスチャと色を持ったスプライトのマテリアル
 #[derive(Debug, Clone)]

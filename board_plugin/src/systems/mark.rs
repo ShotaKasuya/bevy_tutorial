@@ -1,4 +1,4 @@
-use bevy::prelude::{BuildChildren, Children, Commands, EventReader, Name, Query, Res, ResMut, Transform, Vec2};
+use bevy::prelude::{BuildChildren, Children, Commands, DespawnRecursiveExt, EventReader, Name, Query, Res, ResMut, Transform, Vec2};
 use bevy::sprite::{Sprite, SpriteBundle};
 use crate::events::TileMarkEvent;
 use crate::resources::board::Board;
@@ -23,11 +23,22 @@ pub fn mark_tiles(
                                     custom_size: Some(Vec2::splat(board.tile_size)),
                                     ..Default::default()
                                 },
-                                transform: Transform::from_xyz(0., 0.,1.),
+                                transform: Transform::from_xyz(0., 0.,2.),
                                 ..Default::default()
                             });
                     })
                     .insert(Name::new("Flag"));
+            } else {
+                let children = match query.get(entity) {
+                    Ok(c) => c,
+                    Err(e) => {
+                        log::error!("Failed to retrive flag entity components: {}", e);
+                        continue;
+                    }
+                };
+                for child in children.iter() {
+                    commands.entity(*child).despawn_recursive();
+                }
             }
         }
     }

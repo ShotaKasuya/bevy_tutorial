@@ -45,7 +45,11 @@ impl Board {
         }
         self.covered_tiles.remove(coords)
     }
-    pub fn try_toggle_mark(&mut self, coords:&Coordinates) -> Option<(Entity, bool)> {
+
+    /// 指定したマスがマーキングされていたらマークを外し、
+    /// されていなければマークをつける
+    ///
+    pub fn try_toggle_mark(&mut self, coords: &Coordinates) -> Option<(Entity, bool)> {
         let entity = *self.covered_tiles.get(coords)?;
         let mark = if self.marked_tiles.contains(coords) {
             self.unmark_tile(coords)?;
@@ -66,11 +70,11 @@ impl Board {
     }
     /// `marked_tile`を一つ削除します
     fn unmark_tile(&mut self, coords: &Coordinates) -> Option<Coordinates> {
-        let pos = match self.marked_tiles.iter().position(|a| a== coords) {
+        let pos = match self.marked_tiles.iter().position(|a| a == coords) {
             None => {
                 log::error!("Failed to unmark tile at {}", coords);
-                return  None;
-            },
+                return None;
+            }
             Some(p) => p,
         };
 
