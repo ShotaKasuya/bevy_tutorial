@@ -15,6 +15,7 @@ use board_plugin::resources::{BoardAssets, SpriteMaterial};
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Resource, States)]
 pub enum AppState {
+    Title,
     InGame,
     Out,
 }

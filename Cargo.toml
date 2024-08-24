@@ -40,5 +40,6 @@ features = [
 
 [workspace]
 members = [
-    "board_plugin"
+    "board_plugin",
+    "title_plugin",
 ]
