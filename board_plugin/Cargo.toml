@@ -30,3 +30,15 @@ optional = true
 [dependencies.bevy]
 version = "0.14.1"
 default-features = false
+features = [
+    "bevy_render",
+    "bevy_asset",
+    "bevy_sprite",
+    "bevy_text",
+    "bevy_state",
+    "webgl2"
+]
+
+[target.'cfg(target_arch = "wasm32")'.dependencies.getrandom]
+version = "0.2.15"
+features = ["js-sys"]

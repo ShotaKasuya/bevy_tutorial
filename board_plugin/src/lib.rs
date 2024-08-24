@@ -49,15 +49,6 @@ impl<T: States> Plugin for BoardPlugin<T> {
             .add_event::<BoardCompletedEvent>()
             .add_event::<TileMarkEvent>();
 
-        #[cfg(feature = "debug")]
-        {
-            app
-                .add_plugins(ResourceInspectorPlugin::<Coordinates>::default())
-                .add_plugins(ResourceInspectorPlugin::<BombNeighbor>::default())
-                .add_plugins(ResourceInspectorPlugin::<Bomb>::default())
-                .add_plugins(ResourceInspectorPlugin::<Uncover>::default());
-        };
-
         log::info!("Loaded Board Plugin");
     }
 }
@@ -110,6 +101,7 @@ impl<T> BoardPlugin<T> {
             .insert(Name::new("Board"))
             .insert(Transform::from_translation(board_position))
             .insert(GlobalTransform::default())
+            .insert(InheritedVisibility::VISIBLE)
             .with_children(|parent| {
                 parent
                     .spawn(SpriteBundle {
@@ -119,6 +111,7 @@ impl<T> BoardPlugin<T> {
                             ..Default::default()
                         },
                         transform: Transform::from_xyz(board_size.x / 2., board_size.y / 2., 0.),
+                        inherited_visibility: InheritedVisibility::VISIBLE,
                         ..Default::default()
                     })
                     .insert(Name::new("Background"));

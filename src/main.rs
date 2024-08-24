@@ -31,6 +31,7 @@ fn main() {
         ..Default::default()
     }));
 
+
     #[cfg(feature = "debug")]
     app.add_plugins(WorldInspectorPlugin::new());
 

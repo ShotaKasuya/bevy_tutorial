@@ -1,5 +1,4 @@
-use bevy::prelude::{BuildChildren, Children, Commands, DespawnRecursiveExt, EventReader, Name, Query, Res, ResMut, Transform, Vec2};
-use bevy::sprite::{Sprite, SpriteBundle};
+use bevy::prelude::*;
 use crate::events::TileMarkEvent;
 use crate::resources::board::Board;
 use crate::resources::BoardAssets;
@@ -17,15 +16,17 @@ pub fn mark_tiles(
                 commands.entity(entity)
                     .with_children(|parent| {
                         parent
-                            .spawn(SpriteBundle {
-                                texture: board_assets.flag_material.texture.clone(),
-                                sprite: Sprite {
-                                    custom_size: Some(Vec2::splat(board.tile_size)),
+                            .spawn(
+                                SpriteBundle {
+                                    texture: board_assets.flag_material.texture.clone(),
+                                    sprite: Sprite {
+                                        custom_size: Some(Vec2::splat(board.tile_size)),
+                                        ..Default::default()
+                                    },
+                                    transform: Transform::from_xyz(0., 0., 2.),
                                     ..Default::default()
-                                },
-                                transform: Transform::from_xyz(0., 0.,2.),
-                                ..Default::default()
-                            });
+                                }
+                            );
                     })
                     .insert(Name::new("Flag"));
             } else {

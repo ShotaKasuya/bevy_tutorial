@@ -1,14 +1,13 @@
 use bevy::prelude::{Commands, Component, DespawnRecursiveExt, Entity, EventReader, EventWriter, Parent, Query, Res, ResMut, With};
 #[cfg(feature = "debug")]
 use {
-    bevy::prelude::{Reflect, Resource},
     bevy_inspector_egui::InspectorOptions,
 };
 use crate::components::{Bomb, BombNeighbor, Coordinates};
 use crate::events::{BoardCompletedEvent, BombExplosionEvent, TileTriggerEvent};
 use crate::resources::board::Board;
 
-#[cfg_attr(feature = "debug", derive(Resource, Reflect, InspectorOptions))]
+#[cfg_attr(feature = "debug", derive(InspectorOptions))]
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Component)]
 pub struct Uncover;
 
